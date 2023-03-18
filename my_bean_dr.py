@@ -51,7 +51,7 @@ def calculate_homogeneous_k_means(X, y, dataset, dimension):
     cluster_range = [2, 3, 4, 5, 6, 7, 8, 9]
     homogenity_lst = []
     for i in cluster_range:
-        m_labels = KMeans(i, random_state=909).fit(X).labels_
+        m_labels = KMeans(i, n_init="auto", random_state=909).fit(X).labels_
         homogenity_lst.append(skm.homogeneity_score(y, m_labels))
 
     # do the plot here
@@ -95,7 +95,7 @@ def calculate_homogeneous_expectation_max(X, y, dataset):
 
 def k_means_clustering(elbow, silhouette, X, y, dataset, dimension):
     if silhouette == True:
-        plot_silhouette_k_means(X, dimension, "DR k-Means Silhouette")
+        plot_silhouette_k_means(X, dimension, "k-Means Silhouette (Dimensionality Reduction)")
     if elbow == True:
         elbow_results = calculate_elbow(KMeans(), "", X, dimension, dataset)
     calculate_homogeneous_k_means(X=X, y=y, dataset=dataset, dimension=dimension)
@@ -228,13 +228,13 @@ def main():
 
     for dataset in datasets:
         # pre-process
-        df, X_train, X_test, y_train, y_test, X_small = process_data(dataset=dataset)
+        df, X_train, X_test, y_train, y_test = process_data(dataset=dataset)
 
-        # start Principal/Indepndent/Random Component Analysis
+        # start Principal/Independent/Random Component Analysis
         # PCA_X = principal_components_analysis(X=X_train, dataset=dataset, df=df)
         # ICA_X = independent_components_analysis(X=X_train, dataset=dataset, df=df)
         # RCA_X = random_components_analysis(X=X_train, dataset=dataset, df=df)
-        forest_x, forest_y = random_forest(X=X_train, y=y_train, X_small=X_small)
+        forest_x, forest_y = random_forest(X=X_train, y=y_train, X_small=X_train)
 
         # start K Means
         # k_means_clustering(True, True, PCA_X, y_train, dataset, dimension="PCA")
@@ -243,7 +243,7 @@ def main():
         k_means_clustering(True, True, forest_x, forest_y, dataset, dimension="randomforest")
 
         # start Expectation Maximization w/ Dimensionality Reduction
-        expectation_maximization(X_train)
+        expectation_maximization(forest_x)
 
 
 
