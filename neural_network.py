@@ -44,7 +44,7 @@ def process_data(dataset):
     X = pd.DataFrame(mm_scaler.fit_transform(X.values))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=909)
-    return df, X_train, X_test, y_train, y_test
+    return df, X, y, X_train, X_test, y_train, y_test
 
 
 def RandomForest(df, X, y):
@@ -223,19 +223,20 @@ def main():
 
     for dataset in datasets:
         # pre-process
-        df, X_train, X_test, y_train, y_test = process_data(dataset=dataset)
+        df, X, y, X_train, X_test, y_train, y_test = process_data(dataset=dataset)
+
 
         methods = [
-            "k_means",
+            # "k_means",
             # "expectation_maximization",
             # "pca",
             # "ica",
             # "rca",
             # "random_forest",
-            # "normal"
+            "normal"
         ]
         for method in methods:
-            new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, df=df, X=X_train, y=y_train)
+            new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, df=df, X=X, y=y)
 
             sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
             sizes = sizes[0:-1]
@@ -244,19 +245,22 @@ def main():
             gd = sknn.MLPClassifier(random_state=909, max_iter=500)
             alpha = np.logspace(-1, 2, 5)
             learning_rate = np.logspace(-5, 0, 6)
-            hidden_layer = [[i] for i in range(3, 10, 1)]
+            hidden_layer = [[i] for i in range(2, 3)]
 
+            print("got to step 1")
             params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
-            gd = skms.GridSearchCV(gd, param_grid=params, cv=10)
+            small_params = {'hidden_layer_sizes': hidden_layer}
+            gd = skms.GridSearchCV(gd, param_grid=small_params, cv=10)
             gd.fit(new_X_train, new_y_train)
+            print("got to step 2")
             clf = gd.best_estimator_
 
             train_sizes, train_scores, cv_scores = skms.learning_curve(clf, new_X_train, new_y_train, train_sizes=sizes, cv=10, scoring="f1_weighted")
-
+            print("got to step 3")
             train_scores_mean = train_scores.mean(axis=1)
             cv_scores_mean = cv_scores.mean(axis=1)
-            plt.plot(size_per, train_scores_mean, 'o-', color='r', label='Training Score')
-            plt.plot(size_per, cv_scores_mean, 'o-', color='b', label='Cross-Validation Score')
+            plt.plot(size_per, train_scores_mean, label='Training Score')
+            plt.plot(size_per, cv_scores_mean, label='Cross-Validation Score')
             plt.ylabel('Model F1 Score')
             plt.xlabel('Sample Size (%)')
 
@@ -267,6 +271,9 @@ def main():
             # plt.savefig(f"{dataset} LC - {method}")
             plt.show()
             plt.clf()
+
+        # plot_nn(data=dataset, cluster=True)
+        # plot_nn(data=dataset, cluster=False)
 
 
 
