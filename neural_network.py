@@ -53,9 +53,9 @@ def process_data(dataset):
     return df, X, y, X_train, X_test, y_train, y_test
 
 
-def RandomForest(df, X, y):
+def RandomForest(X, y):
     mm_scaler = skp.MinMaxScaler()
-    adjusted_x = pd.DataFrame(mm_scaler.fit_transform(df.values))
+    adjusted_x = pd.DataFrame(mm_scaler.fit_transform(X.values))
 
     tree = sken.RandomForestClassifier(n_estimators=100, random_state=909)
     tree.fit(X, y)
@@ -67,18 +67,18 @@ def RandomForest(df, X, y):
 
 def choose_method(method, df, X, y):
     if method == "k_means":
-        df = df.join(pd.DataFrame(skc.KMeans(n_clusters=5, random_state=909).fit(df).predict(df), columns=["Clusters"]))
+        df = df.join(pd.DataFrame(skc.KMeans(n_clusters=5, random_state=909).fit(X).predict(X), columns=["Clusters"]))
     elif method == "expectation_maximization":
         df = df.join(
-            pd.DataFrame(skmix.GaussianMixture(n_components=5, random_state=909).fit(df).predict(df), columns=["Clusters"]))
+            pd.DataFrame(skmix.GaussianMixture(n_components=5, random_state=909).fit(X).predict(X), columns=["Clusters"]))
     elif method == "pca":
-        df = pd.DataFrame(skd.PCA(8).fit_transform(df))
+        df = pd.DataFrame(skd.PCA(8).fit_transform(X))
     elif method == "ica":
-        df = pd.DataFrame(skd.FastICA(7, random_state=909).fit_transform(df))
+        df = pd.DataFrame(skd.FastICA(7, random_state=909).fit_transform(X))
     elif method == "rca":
-        df = pd.DataFrame(skrp.GaussianRandomProjection(n_components=13, random_state=909).fit_transform(df))
+        df = pd.DataFrame(skrp.GaussianRandomProjection(n_components=13, random_state=909).fit_transform(X))
     elif method == "random_forest":
-        df, y = RandomForest(df, X, y)
+        df, y = RandomForest(X, y)
     elif method == "normal":
         df, y = df, y
 
@@ -234,15 +234,16 @@ def main():
 
 
         methods = [
-            # "k_means",
-            # "expectation_maximization",
-            # "pca",
-            # "ica",
-            # "rca",
-            # "random_forest",
+            "k_means",
+            "expectation_maximization",
+            "pca",
+            "ica",
+            "rca",
+            "random_forest",
             "normal"
         ]
         for method in methods:
+            print(method)
             new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, df=df, X=X, y=y)
 
             sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
