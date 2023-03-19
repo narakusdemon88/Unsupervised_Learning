@@ -10,6 +10,15 @@ Notes:
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
+import sklearn.cluster as skc
+import sklearn.ensemble as ske
+import sklearn.preprocessing as skp
+import sklearn.model_selection as skm
+import sklearn.ensemble as sken
+import numpy as np
+import sklearn.mixture as skmix
+import sklearn.decomposition as skd
+import sklearn.random_projection as skrp
 
 
 def process_data(dataset):
@@ -36,12 +45,57 @@ def process_data(dataset):
     return df, X_train, X_test, y_train, y_test
 
 
+def RandomForest(df, X, y):
+    mm_scaler = skm.preprocessing.MinMaxScaler()
+    adjusted_x = pd.DataFrame(mm_scaler.fit_transform(df.values))
+
+    tree = sken.RandomForestClassifier(n_estimators=100, random_state=909)
+    tree.fit(X, y)
+    importance = tree.feature_importances_
+    indices = np.argsort(importance)[::-1][:11]
+    rand_x = adjusted_x.drop(columns=[col for col in adjusted_x if col not in indices])
+    return rand_x
+
+
+def choose_method(method, df, X, y):
+    df, y = None, None
+    if method == "kmeans":
+        df = df.join(pd.DataFrame(skc.KMeans(n_clusters=5, random_state=909).fit(df).predict(df), columns=["Clusters"]))
+    elif method == "EM":
+        df = df.join(
+            pd.DataFrame(skmix.GaussianMixture(n_components=5, random_state=909).fit(df).predict(df), columns=["Clusters"]))
+    elif method == "PCA":
+        df = pd.DataFrame(skd.PCA(8).fit_transform(df))
+    elif method == "ICA":
+        df = pd.DataFrame(skd.FastICA(7, random_state=909).fit_transform(df))
+    elif method == "RCA":
+        df = pd.DataFrame(skrp.GaussianRandomProjection(n_components=13, random_state=909).fit_transform(df))
+    elif method == "rand":
+        df, y = RandomForest(df, X, y)
+    elif method == "regular":
+        df, y = df, y
+
+    foo = df.values
+    scaler = skm.preprocessing.MinMaxScaler()
+    x_scaled = scaler.fit_transform(foo)
+    x_scaled = pd.DataFrame(x_scaled)
+
+    x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, test_size=.2, shuffle=True, random_state=909)
+    one_hot = skp.OneHotEncoder()
+    y_train = one_hot.fit_transform(y_train.values.reshape(-1, 1)).todense()
+    y_test = one_hot.transform(y_test.values.reshape(-1, 1)).todense()
+    return x_train, x_test, y_train, y_test
+
+
 def main():
     datasets = ["bean"]
 
     for dataset in datasets:
         # pre-process
         df, X_train, X_test, y_train, y_test = process_data(dataset=dataset)
+
+
+
 
 
 if __name__ == "__main__":
