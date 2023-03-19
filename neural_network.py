@@ -9,7 +9,6 @@ Notes:
 """
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
 import sklearn.cluster as skc
 import sklearn.preprocessing as skp
 import sklearn.model_selection as skm
@@ -21,6 +20,7 @@ import sklearn.random_projection as skrp
 import sklearn.neural_network as sknn
 import sklearn.model_selection as skms
 import matplotlib.pyplot as plt
+import time
 
 
 def process_data(dataset):
@@ -40,7 +40,7 @@ def process_data(dataset):
     X = df.drop(pred_col, axis=1)
     y = df[pred_col]
 
-    mm_scaler = MinMaxScaler()
+    mm_scaler = skp.MinMaxScaler()
     X = pd.DataFrame(mm_scaler.fit_transform(X.values))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=909)
@@ -48,7 +48,7 @@ def process_data(dataset):
 
 
 def RandomForest(df, X, y):
-    mm_scaler = skm.preprocessing.MinMaxScaler()
+    mm_scaler = skp.MinMaxScaler()
     adjusted_x = pd.DataFrame(mm_scaler.fit_transform(df.values))
 
     tree = sken.RandomForestClassifier(n_estimators=100, random_state=909)
@@ -76,16 +76,51 @@ def choose_method(method, df, X, y):
     elif method == "normal":
         df, y = df, y
 
-    foo = df.values
-    scaler = skm.preprocessing.MinMaxScaler()
+    foo = X.values
+    scaler = skp.MinMaxScaler()
     x_scaled = scaler.fit_transform(foo)
     x_scaled = pd.DataFrame(x_scaled)
 
     x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, test_size=.2, shuffle=True, random_state=909)
     one_hot = skp.OneHotEncoder()
-    y_train = one_hot.fit_transform(y_train.values.reshape(-1, 1)).todense()
-    y_test = one_hot.transform(y_test.values.reshape(-1, 1)).todense()
+    y_train = np.asarray(one_hot.fit_transform(y_train.values.reshape(-1, 1)).todense())
+    y_test = np.asarray(one_hot.transform(y_test.values.reshape(-1, 1)).todense())
     return x_train, x_test, y_train, y_test
+
+
+def nn(method):
+    iterations = [i for i in range(10, 501, 10)]
+
+    x_train, x_test, y_train, y_test = choose_method(method)
+    gd_train_f1 = []
+    gd_test_f1 = []
+    runtime_list = []
+
+    gd = sknn.MLPClassifier(random_state=909, max_iter=500)
+    alpha = np.logspace(-1, 2, 5)
+    learning_rate = np.logspace(-5, 0, 6)
+    hidden_layer = [[i] for i in range(3,10, 1)]
+
+    params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes':hidden_layer}
+    gd = skms.GridSearchCV(gd, param_grid=params, cv=10)
+    gd.fit(x_train, y_train)
+    gd = gd.best_estimator_
+    gd_loss = gd.loss_curve_
+
+    for iteration in iterations:
+        start_time = time.perf_counter()
+
+        gd.set_params(max_iter=iteration)
+        gd.fit(x_train, y_train)
+        train_time = time.perf_counter()-start_time
+        gd_loss.append(gd.loss)
+        train_pred = gd.predict(x_train)
+        test_pred = gd.predict(x_test)
+        gd_train_f1.append(skm.f1_score(y_train, train_pred, average='weighted'))
+        gd_test_f1.append(skm.f1_score(y_test, test_pred, average='weighted'))
+        runtime_list.append(train_time)
+
+    return gd_train_f1, gd_test_f1, gd_loss, runtime_list
 
 
 def main():
@@ -107,36 +142,36 @@ def main():
         for method in methods:
             new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, df=df, X=X_train, y=y_train)
 
-        sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
-        sizes = sizes[0:-1]
-        size_per = [x / sizes[-1] for x in sizes]
+            sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
+            sizes = sizes[0:-1]
+            size_per = [x / sizes[-1] for x in sizes]
 
-        gd = sknn.MLPClassifier(random_state=909, max_iter=500)
-        alpha = np.logspace(-1, 2, 5)
-        learning_rate = np.logspace(-5, 0, 6)
-        hidden_layer = [[i] for i in range(3, 10, 1)]
+            gd = sknn.MLPClassifier(random_state=909, max_iter=500)
+            alpha = np.logspace(-1, 2, 5)
+            learning_rate = np.logspace(-5, 0, 6)
+            hidden_layer = [[i] for i in range(3, 10, 1)]
 
-        params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
-        gd = skms.GridSearchCV(gd, param_grid=params, cv=10)
-        gd.fit(new_X_train, new_y_train)
-        clf = gd.best_estimator_
+            params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+            gd = skms.GridSearchCV(gd, param_grid=params, cv=10)
+            gd.fit(new_X_train, new_y_train)
+            clf = gd.best_estimator_
 
-        train_sizes, train_scores, cv_scores = skms.learning_curve(clf, new_X_train, new_y_train, train_sizes=sizes, cv=10, scoring="f1_weighted")
+            train_sizes, train_scores, cv_scores = skms.learning_curve(clf, new_X_train, new_y_train, train_sizes=sizes, cv=10, scoring="f1_weighted")
 
-        train_scores_mean = train_scores.mean(axis=1)
-        cv_scores_mean = cv_scores.mean(axis=1)
-        plt.plot(size_per, train_scores_mean, 'o-', color='r', label='Training Score')
-        plt.plot(size_per, cv_scores_mean, 'o-', color='b', label='Cross-Validation Score')
-        plt.ylabel('Model F1 Score')
-        plt.xlabel('Sample Size (%)')
+            train_scores_mean = train_scores.mean(axis=1)
+            cv_scores_mean = cv_scores.mean(axis=1)
+            plt.plot(size_per, train_scores_mean, 'o-', color='r', label='Training Score')
+            plt.plot(size_per, cv_scores_mean, 'o-', color='b', label='Cross-Validation Score')
+            plt.ylabel('Model F1 Score')
+            plt.xlabel('Sample Size (%)')
 
-        plt.title(f"{self.data} {method} NN Learning Curve - ({len(x_train)} total samples)")
-        plt.legend(loc='best')
-        plt.tight_layout()
-        plt.grid(b=True)
-        plt.savefig(f"{self.data} LC - {method}")
-        # plt.show()
-        plt.clf()
+            plt.title(f"{dataset} {method} NN Learning Curve - ({len(new_X_train)} total samples)")
+            plt.legend(loc='best')
+            plt.tight_layout()
+            plt.grid(b=True)
+            # plt.savefig(f"{dataset} LC - {method}")
+            plt.show()
+            plt.clf()
 
 
 
