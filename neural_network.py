@@ -19,6 +19,9 @@ import numpy as np
 import sklearn.mixture as skmix
 import sklearn.decomposition as skd
 import sklearn.random_projection as skrp
+import sklearn.neural_network as sknn
+import sklearn.model_selection as skms
+import matplotlib.pyplot as plt
 
 
 def process_data(dataset):
@@ -98,6 +101,36 @@ def main():
         for method in methods:
             new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, df=df, X=X_train, y=y_train)
 
+        sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
+        sizes = sizes[0:-1]
+        size_per = [x / sizes[-1] for x in sizes]
+
+        gd = sknn.MLPClassifier(random_state=909, max_iter=500)
+        alpha = np.logspace(-1, 2, 5)
+        learning_rate = np.logspace(-5, 0, 6)
+        hidden_layer = [[i] for i in range(3, 10, 1)]
+
+        params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+        gd = skms.GridSearchCV(gd, param_grid=params, cv=10)
+        gd.fit(new_X_train, new_y_train)
+        clf = gd.best_estimator_
+
+        train_sizes, train_scores, cv_scores = skms.learning_curve(clf, new_X_train, new_y_train, train_sizes=sizes, cv=10, scoring="f1_weighted")
+
+        train_scores_mean = train_scores.mean(axis=1)
+        cv_scores_mean = cv_scores.mean(axis=1)
+        plt.plot(size_per, train_scores_mean, 'o-', color='r', label='Training Score')
+        plt.plot(size_per, cv_scores_mean, 'o-', color='b', label='Cross-Validation Score')
+        plt.ylabel('Model F1 Score')
+        plt.xlabel('Sample Size (%)')
+
+        plt.title(f"{self.data} {method} NN Learning Curve - ({len(x_train)} total samples)")
+        plt.legend(loc='best')
+        plt.tight_layout()
+        plt.grid(b=True)
+        plt.savefig(f"{self.data} LC - {method}")
+        # plt.show()
+        plt.clf()
 
 
 
