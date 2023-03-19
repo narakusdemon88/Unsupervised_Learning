@@ -88,6 +88,101 @@ def choose_method(method, df, X, y):
     return x_train, x_test, y_train, y_test
 
 
+def plot_nn(data, cluster=False):
+
+    iterations = [i for i in range(10, 501, 10)]
+
+    if cluster:
+        reg_train, reg_test, reg_loss, reg_time = nn("regular")
+        k_train, k_test, k_loss, k_time = nn('kmeans')
+        em_train, em_test, em_loss, em_time = nn('EM')
+
+        plt.plot(iterations, reg_test, color='r', label='Regular')
+        plt.plot(iterations, k_test, color='b', label='Kmeans')
+        plt.plot(iterations, em_test, color='g', label='EM')
+        plt.ylabel('F1 Score')
+        plt.xlabel(f'Number of Max Iterations')
+        plt.title("Testing F1 score by Iterations")
+        plt.legend(loc='best')
+        plt.tight_layout()
+        plt.grid(b=True)
+        plt.savefig(f"{data} - F1 cluster test")
+        plt.clf()
+
+        plt.plot(reg_loss, color='r', label='Regular')
+        plt.plot(k_loss, color='b', label='Kmeans')
+        plt.plot(em_loss, color='g', label='EM')
+        plt.ylabel('Loss')
+        plt.xlabel(f'Number of Iterations')
+        plt.title("Cluster Loss Score by Iterations")
+        plt.legend(loc='best')
+        plt.tight_layout()
+        plt.grid(b=True)
+        plt.savefig(f"{data} - Loss cluster")
+        plt.clf()
+
+        plt.plot(iterations, reg_time, color='r', label='Regular')
+        plt.plot(iterations, k_time, color='g', label='Kmeans')
+        plt.plot(iterations, em_time, color='b', label='EM')
+        plt.ylabel('Runtime')
+        plt.xlabel(f'Number of Max Iterations')
+        plt.title("Runtime comparing regular and clustering by Iterations")
+        plt.legend(loc='best')
+        plt.tight_layout()
+        plt.grid(b=True)
+        plt.savefig(f"{data} - runtime cluster")
+        plt.clf()
+
+    else:
+        reg_train, reg_test, reg_loss, reg_time = nn("regular")
+        PCA_train, PCA_test, PCA_loss, PCA_time = nn('PCA')
+        ICA_train, ICA_test, ICA_loss, ICA_time = nn('ICA')
+        RCA_train, RCA_test, RCA_loss, RCA_time = nn('RCA')
+        rand_train, rand_test, rand_loss, rand_time = nn('rand')
+
+        plt.plot(iterations, reg_test, color='r', label='Regular')
+        plt.plot(iterations, PCA_test, color='b', label='PCA')
+        plt.plot(iterations, ICA_test, color='g', label='ICA')
+        plt.plot(iterations, RCA_test, color='m', label='RCA')
+        plt.plot(iterations, rand_test, color='y', label='RandomForest')
+        plt.ylabel('Loss')
+        plt.xlabel(f'Number of Iterations')
+        plt.title("Cluster Loss Score by Iterations")
+        plt.legend(loc='best')
+        plt.tight_layout()
+        plt.grid(b=True)
+        plt.savefig(f"{data} - F1 DR test")
+        plt.clf()
+
+        plt.plot(reg_loss, color='r', label='Regular')
+        plt.plot(PCA_loss, color='b', label='PCA')
+        plt.plot(ICA_loss, color='g', label='ICA')
+        plt.plot(RCA_loss, color='m', label='RCA')
+        plt.plot(rand_loss, color='y', label='RandomForest')
+        plt.ylabel('Loss')
+        plt.xlabel(f'Number of Max Iterations')
+        plt.title("DR Loss Score by Iterations")
+        plt.legend(loc='best')
+        plt.tight_layout()
+        plt.grid(b=True)
+        plt.savefig(f"{data} - Loss DR")
+        plt.clf()
+
+        plt.plot(iterations, reg_time, color='r', label='Regular')
+        plt.plot(iterations, PCA_time, color='b', label='PCA')
+        plt.plot(iterations, ICA_time, color='g', label='ICA')
+        plt.plot(iterations, RCA_time, color='m', label='RCA')
+        plt.plot(iterations, rand_time, color='y', label='RandomForest')
+        plt.ylabel('Runtime')
+        plt.xlabel(f'Number of Max Iterations')
+        plt.title("Runtime by Iterations")
+        plt.legend(loc='best')
+        plt.tight_layout()
+        plt.grid(b=True)
+        plt.savefig(f"{data} - runtime DR")
+        plt.clf()
+
+
 def nn(method):
     iterations = [i for i in range(10, 501, 10)]
 
