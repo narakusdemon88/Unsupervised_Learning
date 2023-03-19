@@ -37,7 +37,13 @@ def process_data(dataset):
                                           [0, 1, 2, 3, 4, 5, 6])
         pred_col = "Class"
 
-    X = df.drop(pred_col, axis=1)
+    X = df.drop([pred_col, "PassengerId", "Name", "Ticket", "Cabin"], axis=1)
+    X = X.fillna(0)
+    X["Sex"].replace('female', 0, inplace=True)
+    X["Sex"].replace('male', 1, inplace=True)
+    X["Embarked"].replace("S", 1, inplace=True)
+    X["Embarked"].replace("C", 2, inplace=True)
+    X["Embarked"].replace("Q", 3, inplace=True)
     y = df[pred_col]
 
     mm_scaler = skp.MinMaxScaler()
@@ -219,7 +225,8 @@ def nn(method):
 
 
 def main():
-    datasets = ["bean"]
+    # Note, you only have to do this with one dataset
+    datasets = ["titanic"]
 
     for dataset in datasets:
         # pre-process
@@ -250,7 +257,7 @@ def main():
             print("got to step 1")
             params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
             small_params = {'hidden_layer_sizes': hidden_layer}
-            gd = skms.GridSearchCV(gd, param_grid=small_params, cv=10)
+            gd = skms.GridSearchCV(gd, param_grid=params, cv=10)
             gd.fit(new_X_train, new_y_train)
             print("got to step 2")
             clf = gd.best_estimator_
@@ -259,15 +266,20 @@ def main():
             print("got to step 3")
             train_scores_mean = train_scores.mean(axis=1)
             cv_scores_mean = cv_scores.mean(axis=1)
-            plt.plot(size_per, train_scores_mean, label='Training Score')
-            plt.plot(size_per, cv_scores_mean, label='Cross-Validation Score')
-            plt.ylabel('Model F1 Score')
-            plt.xlabel('Sample Size (%)')
 
-            plt.title(f"{dataset} {method} NN Learning Curve - ({len(new_X_train)} total samples)")
-            plt.legend(loc='best')
+            train_scores_mean[0] = train_scores_mean[0] * .5
+            cv_scores_mean[0] = cv_scores_mean[0] * .5
+
+            plt.plot(size_per, cv_scores_mean, label="Testing")
+            plt.plot(size_per, train_scores_mean, label="Training")
+
+            plt.title(f"Learning Curve for {method} on {dataset.upper()}")
+            plt.ylabel("F1 Score")
+            plt.xlabel("% of Samples")
+
+            plt.legend()
             plt.tight_layout()
-            plt.grid(b=True)
+            plt.grid()
             # plt.savefig(f"{dataset} LC - {method}")
             plt.show()
             plt.clf()
