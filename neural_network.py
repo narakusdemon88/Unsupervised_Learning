@@ -11,7 +11,6 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 import sklearn.cluster as skc
-import sklearn.ensemble as ske
 import sklearn.preprocessing as skp
 import sklearn.model_selection as skm
 import sklearn.ensemble as sken
@@ -61,7 +60,6 @@ def RandomForest(df, X, y):
 
 
 def choose_method(method, df, X, y):
-    df, y = None, None
     if method == "k_means":
         df = df.join(pd.DataFrame(skc.KMeans(n_clusters=5, random_state=909).fit(df).predict(df), columns=["Clusters"]))
     elif method == "expectation_maximization":
@@ -97,7 +95,15 @@ def main():
         # pre-process
         df, X_train, X_test, y_train, y_test = process_data(dataset=dataset)
 
-        methods = ["k_means", "expectation_maximization", "pca", "ica", "rca", "random_forest", "normal"]
+        methods = [
+            "k_means",
+            # "expectation_maximization",
+            # "pca",
+            # "ica",
+            # "rca",
+            # "random_forest",
+            # "normal"
+        ]
         for method in methods:
             new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, df=df, X=X_train, y=y_train)
 
