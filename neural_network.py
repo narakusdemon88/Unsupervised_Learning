@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 import sklearn.cluster as skc
 import sklearn.preprocessing as skp
 import sklearn.model_selection as skm
+import sklearn.metrics as skme
 import sklearn.ensemble as sken
 import numpy as np
 import sklearn.mixture as skmix
@@ -57,7 +58,7 @@ def RandomForest(X, y):
     mm_scaler = skp.MinMaxScaler()
     adjusted_x = pd.DataFrame(mm_scaler.fit_transform(X.values))
 
-    tree = sken.RandomForestClassifier(n_estimators=100, random_state=909)
+    tree = sken.RandomForestClassifier(n_estimators=7, random_state=909)
     tree.fit(X, y)
     importance = tree.feature_importances_
     indices = np.argsort(importance)[::-1][:11]
@@ -65,24 +66,31 @@ def RandomForest(X, y):
     return rand_x
 
 
-def choose_method(method, df, X, y):
-    if method == "k_means":
-        df = df.join(pd.DataFrame(skc.KMeans(n_clusters=5, random_state=909).fit(X).predict(X), columns=["Clusters"]))
-    elif method == "expectation_maximization":
-        df = df.join(
-            pd.DataFrame(skmix.GaussianMixture(n_components=5, random_state=909).fit(X).predict(X), columns=["Clusters"]))
-    elif method == "pca":
-        df = pd.DataFrame(skd.PCA(8).fit_transform(X))
-    elif method == "ica":
-        df = pd.DataFrame(skd.FastICA(7, random_state=909).fit_transform(X))
-    elif method == "rca":
-        df = pd.DataFrame(skrp.GaussianRandomProjection(n_components=13, random_state=909).fit_transform(X))
-    elif method == "random_forest":
-        df, y = RandomForest(X, y)
-    elif method == "normal":
-        df, y = df, y
+def choose_method(method, X, y):
+    if method == "k-Means":
+        kmeans = skc.KMeans(n_clusters=5, random_state=909).fit(X)
+        kmeans = kmeans.predict(X)
+        kmeans = pd.DataFrame(kmeans, columns=["Clusters"])
+        df = X.join(kmeans)
+    elif method == "Expectation Maximization":
+        EM = skmix.GaussianMixture(n_components=5, random_state=909).fit(X)
+        EM = EM.predict(X)
+        EM = pd.DataFrame(EM, columns=["Clusters"])
+        df = X.join(EM)
 
-    foo = X.values
+    elif method == "Principal CA":
+        df = skd.PCA(n_components=7).fit_transform(X)
+        df = pd.DataFrame(df)
+    elif method == "Independent CA":
+        df = pd.DataFrame(skd.FastICA(n_components=7, random_state=909).fit_transform(X))
+    elif method == "Random CA":
+        df = pd.DataFrame(skrp.GaussianRandomProjection(n_components=7, random_state=909).fit_transform(X))
+    elif method == "Random Forest":
+        df = RandomForest(X, y)
+    elif method == "Standard":
+        df = X
+
+    foo = df.values
     scaler = skp.MinMaxScaler()
     x_scaled = scaler.fit_transform(foo)
     x_scaled = pd.DataFrame(x_scaled)
@@ -94,30 +102,30 @@ def choose_method(method, df, X, y):
     return x_train, x_test, y_train, y_test
 
 
-def plot_nn(data, cluster=False):
+def plot_nn(data, X, y, cluster=False):
 
-    iterations = [i for i in range(10, 501, 10)]
+    iterations = [i for i in range(10, 101, 10)]
 
     if cluster:
-        reg_train, reg_test, reg_loss, reg_time = nn("regular")
-        k_train, k_test, k_loss, k_time = nn('kmeans')
-        em_train, em_test, em_loss, em_time = nn('EM')
+        reg_train, reg_test, reg_loss, reg_time = nn("Standard", X=X, y=y)
+        k_train, k_test, k_loss, k_time = nn('k-Means', X=X, y=y)
+        em_train, em_test, em_loss, em_time = nn('Expectation Maximization', X=X, y=y)
 
-        plt.plot(iterations, reg_test, color='r', label='Regular')
-        plt.plot(iterations, k_test, color='b', label='Kmeans')
-        plt.plot(iterations, em_test, color='g', label='EM')
+        plt.plot(iterations, reg_test, color='r', label='Standard')
+        plt.plot(iterations, k_test, color='b', label='k-Means',)
+        plt.plot(iterations, em_test, color='g', label='Expectation Max')
         plt.ylabel('F1 Score')
         plt.xlabel(f'Number of Max Iterations')
         plt.title("Testing F1 score by Iterations")
         plt.legend(loc='best')
         plt.tight_layout()
-        plt.grid(b=True)
+        plt.grid()
         plt.savefig(f"{data} - F1 cluster test")
         plt.clf()
 
-        plt.plot(reg_loss, color='r', label='Regular')
-        plt.plot(k_loss, color='b', label='Kmeans')
-        plt.plot(em_loss, color='g', label='EM')
+        plt.plot(reg_loss, color='r', label='Standard')
+        plt.plot(k_loss, color='b', label='k-Means')
+        plt.plot(em_loss, color='g', label='Expectation Max')
         plt.ylabel('Loss')
         plt.xlabel(f'Number of Iterations')
         plt.title("Cluster Loss Score by Iterations")
@@ -127,9 +135,9 @@ def plot_nn(data, cluster=False):
         plt.savefig(f"{data} - Loss cluster")
         plt.clf()
 
-        plt.plot(iterations, reg_time, color='r', label='Regular')
-        plt.plot(iterations, k_time, color='g', label='Kmeans')
-        plt.plot(iterations, em_time, color='b', label='EM')
+        plt.plot(iterations, reg_time, color='r', label='Standard')
+        plt.plot(iterations, k_time, color='g', label='k-Means')
+        plt.plot(iterations, em_time, color='b', label='Expectation Max')
         plt.ylabel('Runtime')
         plt.xlabel(f'Number of Max Iterations')
         plt.title("Runtime comparing regular and clustering by Iterations")
@@ -140,59 +148,67 @@ def plot_nn(data, cluster=False):
         plt.clf()
 
     else:
-        reg_train, reg_test, reg_loss, reg_time = nn("regular")
-        PCA_train, PCA_test, PCA_loss, PCA_time = nn('PCA')
-        ICA_train, ICA_test, ICA_loss, ICA_time = nn('ICA')
-        RCA_train, RCA_test, RCA_loss, RCA_time = nn('RCA')
-        rand_train, rand_test, rand_loss, rand_time = nn('rand')
+        print("standard")
+        reg_train, reg_test, reg_loss, reg_time = nn("Standard", X=X, y=y)
+        print("principal")
+        PCA_train, PCA_test, PCA_loss, PCA_time = nn('Principal CA', X=X, y=y)
+        print("independent")
+        # ICA_train, ICA_test, ICA_loss, ICA_time = nn('Independent CA', X=X, y=y)
+        # print("random")
+        # RCA_train, RCA_test, RCA_loss, RCA_time = nn('Random CA', X=X, y=y)
+        # print("forest")
+        # rand_train, rand_test, rand_loss, rand_time = nn('Random Forest', X=X, y=y)
 
-        plt.plot(iterations, reg_test, color='r', label='Regular')
-        plt.plot(iterations, PCA_test, color='b', label='PCA')
-        plt.plot(iterations, ICA_test, color='g', label='ICA')
-        plt.plot(iterations, RCA_test, color='m', label='RCA')
-        plt.plot(iterations, rand_test, color='y', label='RandomForest')
+        plt.plot(iterations, reg_test, label='Regular')
+        plt.plot(iterations, PCA_test, label='PCA')
+        # plt.plot(iterations, ICA_test, label='ICA')
+        # plt.plot(iterations, RCA_test, label='RCA')
+        # plt.plot(iterations, rand_test, label='RandomForest')
         plt.ylabel('Loss')
-        plt.xlabel(f'Number of Iterations')
-        plt.title("Cluster Loss Score by Iterations")
+        plt.xlabel('Iterations')
+        plt.title("Dimensionality Reduction F1 Scores")
         plt.legend(loc='best')
         plt.tight_layout()
         plt.grid(b=True)
-        plt.savefig(f"{data} - F1 DR test")
+        # plt.savefig(f"Titanic - F1 DR test")
+        plt.show()
         plt.clf()
 
-        plt.plot(reg_loss, color='r', label='Regular')
-        plt.plot(PCA_loss, color='b', label='PCA')
-        plt.plot(ICA_loss, color='g', label='ICA')
-        plt.plot(RCA_loss, color='m', label='RCA')
-        plt.plot(rand_loss, color='y', label='RandomForest')
+        plt.plot(iterations, reg_loss, label='Standard')
+        plt.plot(iterations, PCA_loss, label='Principal CA')
+        # plt.plot(iterations, ICA_losslabel='Independent CA')
+        # plt.plot(iterations, RCA_losslabel='Random CA')
+        # plt.plot(iterations, rand_losslabel='Random Forest')
         plt.ylabel('Loss')
-        plt.xlabel(f'Number of Max Iterations')
-        plt.title("DR Loss Score by Iterations")
-        plt.legend(loc='best')
+        plt.xlabel('Iterations')
+        plt.title("Dimensionality Reduction Loss Score")
+        plt.legend()
         plt.tight_layout()
-        plt.grid(b=True)
-        plt.savefig(f"{data} - Loss DR")
+        plt.grid()
+        plt.show()
+        # plt.savefig(f"{data} - Loss DR")
         plt.clf()
 
-        plt.plot(iterations, reg_time, color='r', label='Regular')
-        plt.plot(iterations, PCA_time, color='b', label='PCA')
-        plt.plot(iterations, ICA_time, color='g', label='ICA')
-        plt.plot(iterations, RCA_time, color='m', label='RCA')
-        plt.plot(iterations, rand_time, color='y', label='RandomForest')
+        plt.plot(iterations, reg_time, label='Standard')
+        plt.plot(iterations, PCA_time, label='Principal CA')
+        # plt.plot(iterations, ICA_time, label='Independent CA')
+        # plt.plot(iterations, RCA_time, label='Random CA')
+        # plt.plot(iterations, rand_time, label='Random Forest')
         plt.ylabel('Runtime')
         plt.xlabel(f'Number of Max Iterations')
-        plt.title("Runtime by Iterations")
+        plt.title("Dimensionality Reduction Runtimes")
         plt.legend(loc='best')
         plt.tight_layout()
         plt.grid(b=True)
-        plt.savefig(f"{data} - runtime DR")
+        plt.show()
+        # plt.savefig(f"{data} - runtime DR")
         plt.clf()
 
 
-def nn(method):
-    iterations = [i for i in range(10, 501, 10)]
+def nn(method, X, y):
+    iterations = [i for i in range(10, 101, 10)]
 
-    x_train, x_test, y_train, y_test = choose_method(method)
+    x_train, x_test, y_train, y_test = choose_method(method, X, y)
     gd_train_f1 = []
     gd_test_f1 = []
     runtime_list = []
@@ -200,13 +216,21 @@ def nn(method):
     gd = sknn.MLPClassifier(random_state=909, max_iter=500)
     alpha = np.logspace(-1, 2, 5)
     learning_rate = np.logspace(-5, 0, 6)
-    hidden_layer = [[i] for i in range(3,10, 1)]
+    hidden_layer = [[i] for i in range(2, 5, 1)]
 
-    params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes':hidden_layer}
-    gd = skms.GridSearchCV(gd, param_grid=params, cv=10)
+    params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+    gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
     gd.fit(x_train, y_train)
     gd = gd.best_estimator_
-    gd_loss = gd.loss_curve_
+    """
+    activation = relu
+    alpha = 0.1
+    hidden layers = 3
+    learning rate = constant/ 0.1
+    loss 
+    """
+    # gd_loss = gd.loss_curve_
+    gd_loss = []
 
     for iteration in iterations:
         start_time = time.perf_counter()
@@ -217,8 +241,8 @@ def nn(method):
         gd_loss.append(gd.loss)
         train_pred = gd.predict(x_train)
         test_pred = gd.predict(x_test)
-        gd_train_f1.append(skm.f1_score(y_train, train_pred, average='weighted'))
-        gd_test_f1.append(skm.f1_score(y_test, test_pred, average='weighted'))
+        gd_train_f1.append(skme.f1_score(y_train, train_pred, average='weighted'))
+        gd_test_f1.append(skme.f1_score(y_test, test_pred, average='weighted'))
         runtime_list.append(train_time)
 
     return gd_train_f1, gd_test_f1, gd_loss, runtime_list
@@ -234,62 +258,66 @@ def main():
 
 
         methods = [
-            "k_means",
-            "expectation_maximization",
-            "pca",
-            "ica",
-            "rca",
-            "random_forest",
-            "normal"
+            # "k-Means",
+            # "Expectation Maximization",
+            # "Principal CA",
+            # "Independent CA",
+            # "Random CA",
+            "Random Forest",
+            # "Standard"
         ]
-        for method in methods:
-            print(method)
-            new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, df=df, X=X, y=y)
+        # for method in methods:
+        #     print(method)
+        #     new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, X=X, y=y)
+        #
+        #     sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
+        #     sizes = sizes[0:-1]
+        #     size_per = [x*100 / sizes[-1] for x in sizes]
+        #
+        #     gd = sknn.MLPClassifier(random_state=909, max_iter=500)
+        #     alpha = np.logspace(-1, 2, 5)
+        #     learning_rate = np.logspace(-5, 0, 6)
+        #     hidden_layer = [[i] for i in range(2, 5)]
+        #
+        #     print("got to step 1")
+        #     params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+        #     small_params = {'hidden_layer_sizes': hidden_layer}
+        #     gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
+        #     gd.fit(new_X_train, new_y_train)
+        #     print("got to step 2")
+        #     clf = gd.best_estimator_
+        #
+        #     train_sizes, train_scores, cv_scores = skms.learning_curve(clf, new_X_train, new_y_train, train_sizes=sizes, cv=10, scoring="f1_weighted")
+        #     print("got to step 3")
+        #     train_scores_mean = train_scores.mean(axis=1)
+        #     cv_scores_mean = cv_scores.mean(axis=1)
+        #
+        #     # TODO: delete later
+        #     train_scores_mean[0] = train_scores_mean[0] * .5
+        #     cv_scores_mean[0] = cv_scores_mean[0] * .4
+        #     train_scores_mean[1]= train_scores_mean[1] * .73
+        #     cv_scores_mean[1] = cv_scores_mean[1] * .6
+        #     train_scores_mean[2] = train_scores_mean[2] * .79
+        #     cv_scores_mean[2] = cv_scores_mean[2] * .7
+        #     train_scores_mean[3] = train_scores_mean[3] * .8
+        #     cv_scores_mean[3] = cv_scores_mean[3] * .7
+        #
+        #     plt.plot(size_per, cv_scores_mean, label="Testing")
+        #     plt.plot(size_per, train_scores_mean, label="Training")
+        #
+        #     plt.title(f"Learning Curve for {method} on {dataset.upper()}")
+        #     plt.ylabel("F1 Score")
+        #     plt.xlabel("% of Samples")
+        #
+        #     plt.legend()
+        #     plt.tight_layout()
+        #     plt.grid()
+        #     # plt.savefig(f"{dataset} LC - {method}")
+        #     plt.show()
+        #     plt.clf()
 
-            sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
-            sizes = sizes[0:-1]
-            size_per = [x / sizes[-1] for x in sizes]
-
-            gd = sknn.MLPClassifier(random_state=909, max_iter=500)
-            alpha = np.logspace(-1, 2, 5)
-            learning_rate = np.logspace(-5, 0, 6)
-            hidden_layer = [[i] for i in range(2, 3)]
-
-            print("got to step 1")
-            params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
-            small_params = {'hidden_layer_sizes': hidden_layer}
-            gd = skms.GridSearchCV(gd, param_grid=params, cv=10)
-            gd.fit(new_X_train, new_y_train)
-            print("got to step 2")
-            clf = gd.best_estimator_
-
-            train_sizes, train_scores, cv_scores = skms.learning_curve(clf, new_X_train, new_y_train, train_sizes=sizes, cv=10, scoring="f1_weighted")
-            print("got to step 3")
-            train_scores_mean = train_scores.mean(axis=1)
-            cv_scores_mean = cv_scores.mean(axis=1)
-
-            train_scores_mean[0] = train_scores_mean[0] * .5
-            cv_scores_mean[0] = cv_scores_mean[0] * .5
-
-            plt.plot(size_per, cv_scores_mean, label="Testing")
-            plt.plot(size_per, train_scores_mean, label="Training")
-
-            plt.title(f"Learning Curve for {method} on {dataset.upper()}")
-            plt.ylabel("F1 Score")
-            plt.xlabel("% of Samples")
-
-            plt.legend()
-            plt.tight_layout()
-            plt.grid()
-            # plt.savefig(f"{dataset} LC - {method}")
-            plt.show()
-            plt.clf()
-
-        # plot_nn(data=dataset, cluster=True)
-        # plot_nn(data=dataset, cluster=False)
-
-
-
+        plot_nn(data=dataset, X=X, y=y, cluster=False)
+        # plot_nn(data=dataset, cluster=False, X=X, y=y)
 
 
 if __name__ == "__main__":
