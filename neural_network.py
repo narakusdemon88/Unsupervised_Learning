@@ -229,8 +229,7 @@ def nn(method, X, y):
     learning rate = constant/ 0.1
     loss 
     """
-    # gd_loss = gd.loss_curve_
-    gd_loss = []
+    gd_loss = gd.loss_curve_
 
     for iteration in iterations:
         start_time = time.perf_counter()
