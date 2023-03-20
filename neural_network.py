@@ -208,11 +208,10 @@ def nn(method, X, y):
     gd_test_f1 = []
     runtime_list = []
 
-    param_grid = {
-        "hidden_layer_sizes": [[i] for i in range(2, 5, 1)],
-        "alpha": [0.0001, 0.001, 0.01],
-        "learning_rate": np.logspace(-5, 0, 6)
-    }
+    param_grid = {'hidden_layer_sizes': [(100,), (50, 50), (25, 50, 25)],
+                  'activation': ['relu', 'logistic', 'tanh'],
+                  'alpha': [0.0001, 0.001, 0.01],
+                  'max_iter': [1000]}
     clf = sknn.MLPClassifier(random_state=909)
 
     scorer = skme.make_scorer(skme.f1_score, average="weighted")
