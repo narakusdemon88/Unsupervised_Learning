@@ -27,15 +27,18 @@ def process_data(dataset):
     df = pd.read_csv(f"datasets/{dataset}.csv")
 
     if dataset == "titanic":
+        # drop unnecessary stuff
+        df = df.drop(["PassengerId", "Name", "Ticket", "Cabin"], axis=1)
+
+        df["Embarked"] = df["Embarked"].map(arg={"S": 0, "C": 1, "Q": 2})
+        df["Sex"] = df["Sex"].map(arg={"male": 0, "female": 1})
+
+        df = df.dropna()
         pred_col = "Survived"
 
-    elif dataset == "winequality-red":
-        pred_col = "quality"
-
+    # elif dataset == "winequality-red":
     else:
-        df["Class"] = df["Class"].replace(["SEKER", "BARBUNYA", "BOMBAY", "CALI", "HOROZ", "SIRA", "DERMASON"],
-                                          [0, 1, 2, 3, 4, 5, 6])
-        pred_col = "Class"
+        pred_col = "quality"
 
     X = df.drop(pred_col, axis=1)
     y = df[pred_col]
@@ -110,7 +113,6 @@ def plot_silhouette_k_means(X, dimension, name):
         print(f"sil score for {cluster} is {vis.silhouette_score_}")  # TODO: delete this later
         vis.show(outpath=f"{dimension} {name} {cluster}")   # TODO: change this up
         plt.clf()
-
 
 
 def calculate_elbow(model, name, X, dimension, dataset):
@@ -224,7 +226,7 @@ def random_forest(X, y, X_small):  # TODO: CHANGE VARIABLE NAMES AND OTHER STUFF
 
 
 def main():
-    datasets = ["bean"]
+    datasets = ["titanic"]
 
     for dataset in datasets:
         # pre-process

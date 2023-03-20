@@ -73,18 +73,18 @@ def choose_method(method, X, y):
         kmeans = pd.DataFrame(kmeans, columns=["Clusters"])
         df = X.join(kmeans)
     elif method == "Expectation Maximization":
-        EM = skmix.GaussianMixture(n_components=5, random_state=909).fit(X)
+        EM = skmix.GaussianMixture(n_components=2, random_state=909).fit(X)
         EM = EM.predict(X)
         EM = pd.DataFrame(EM, columns=["Clusters"])
         df = X.join(EM)
 
     elif method == "Principal CA":
-        df = skd.PCA(n_components=7).fit_transform(X)
+        df = skd.PCA(n_components=2).fit_transform(X)
         df = pd.DataFrame(df)
     elif method == "Independent CA":
-        df = pd.DataFrame(skd.FastICA(n_components=7, random_state=909).fit_transform(X))
+        df = pd.DataFrame(skd.FastICA(n_components=2, random_state=909).fit_transform(X))
     elif method == "Random CA":
-        df = pd.DataFrame(skrp.GaussianRandomProjection(n_components=7, random_state=909).fit_transform(X))
+        df = pd.DataFrame(skrp.GaussianRandomProjection(n_components=2, random_state=909).fit_transform(X))
     elif method == "Random Forest":
         df = RandomForest(X, y)
     elif method == "Standard":

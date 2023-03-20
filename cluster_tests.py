@@ -32,7 +32,7 @@ def transform_data(df, method):
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
 
-        em = GaussianMixture(n_components=3, random_state=42)
+        em = GaussianMixture(n_components=2, random_state=42)
         em.fit(X_scaled)
 
         final_df = pd.DataFrame(X_scaled)
@@ -163,10 +163,12 @@ def plot_other_graphs(method):
 
 
 def main():
+    # Plot Learning Curves
     plot_learning_curve("regular")
     plot_learning_curve("kmeans")
     plot_learning_curve("expectation")
 
+    # Plot Loss/Run/F1
     plot_other_graphs("regular")
     plot_other_graphs("kmeans")
     plot_other_graphs("expectation")
