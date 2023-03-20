@@ -65,10 +65,16 @@ def process_data(method):
 def plot_learning_curve(method):
     x_train, x_test, y_train, y_test = process_data(method)
 
-    sizes = np.linspace(len(x_train) / 10, len(x_train), 10, dtype=int)
-    sizes = sizes[0:-1]
-    # print(sizes)
-    size_per = [x / sizes[-1] for x in sizes]
+    x_train_len = len(x_train)
+
+    size_division = x_train_len * 0.1
+
+    sizes = np.linspace(size_division, x_train_len, 10, dtype=int)[0:-1]
+
+    size_per = [
+        x / np.linspace(size_division, x_train_len, 10, dtype=int)[0:-1][-1] for x in
+        np.linspace(size_division, x_train_len, 10, dtype=int)[0:-1]
+    ]
 
     gd = MLPClassifier(max_iter=500)
     alpha = np.logspace(-1, 2, 5)

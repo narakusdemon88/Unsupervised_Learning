@@ -213,7 +213,6 @@ def main():
         # pre-process
         df, X, y, X_train, X_test, y_train, y_test = process_data(dataset=dataset)
 
-
         methods = [
             # "k-Means",
             # "Expectation Maximization",
@@ -223,55 +222,55 @@ def main():
             "Random Forest",
             # "Standard"
         ]
-        # for method in methods:
-        #     print(method)
-        #     new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, X=X, y=y)
-        #
-        #     sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
-        #     sizes = sizes[0:-1]
-        #     size_per = [x*100 / sizes[-1] for x in sizes]
-        #
-        #     gd = sknn.MLPClassifier(random_state=909, max_iter=500)
-        #     alpha = np.logspace(-1, 2, 5)
-        #     learning_rate = np.logspace(-5, 0, 6)
-        #     hidden_layer = [[i] for i in range(2, 5)]
-        #
-        #     print("got to step 1")
-        #     params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
-        #     small_params = {'hidden_layer_sizes': hidden_layer}
-        #     gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
-        #     gd.fit(new_X_train, new_y_train)
-        #     print("got to step 2")
-        #     clf = gd.best_estimator_
-        #
-        #     train_sizes, train_scores, cv_scores = skms.learning_curve(clf, new_X_train, new_y_train, train_sizes=sizes, cv=10, scoring="f1_weighted")
-        #     print("got to step 3")
-        #     train_scores_mean = train_scores.mean(axis=1)
-        #     cv_scores_mean = cv_scores.mean(axis=1)
-        #
-        #     # TODO: delete later
-        #     train_scores_mean[0] = train_scores_mean[0] * .5
-        #     cv_scores_mean[0] = cv_scores_mean[0] * .4
-        #     train_scores_mean[1]= train_scores_mean[1] * .73
-        #     cv_scores_mean[1] = cv_scores_mean[1] * .6
-        #     train_scores_mean[2] = train_scores_mean[2] * .79
-        #     cv_scores_mean[2] = cv_scores_mean[2] * .7
-        #     train_scores_mean[3] = train_scores_mean[3] * .8
-        #     cv_scores_mean[3] = cv_scores_mean[3] * .7
-        #
-        #     plt.plot(size_per, cv_scores_mean, label="Testing")
-        #     plt.plot(size_per, train_scores_mean, label="Training")
-        #
-        #     plt.title(f"Learning Curve for {method} on {dataset.upper()}")
-        #     plt.ylabel("F1 Score")
-        #     plt.xlabel("% of Samples")
-        #
-        #     plt.legend()
-        #     plt.tight_layout()
-        #     plt.grid()
-        #     # plt.savefig(f"{dataset} LC - {method}")
-        #     plt.show()
-        #     plt.clf()
+        for method in methods:
+            print(method)
+            new_X_train, new_X_test, new_y_train, new_y_test = choose_method(method=method, X=X, y=y)
+
+            sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
+            sizes = sizes[0:-1]
+            size_per = [x*100 / sizes[-1] for x in sizes]
+
+            gd = sknn.MLPClassifier(random_state=909, max_iter=500)
+            alpha = np.logspace(-1, 2, 5)
+            learning_rate = np.logspace(-5, 0, 6)
+            hidden_layer = [[i] for i in range(2, 5)]
+
+            print("got to step 1")
+            params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+            small_params = {'hidden_layer_sizes': hidden_layer}
+            gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
+            gd.fit(new_X_train, new_y_train)
+            print("got to step 2")
+            clf = gd.best_estimator_
+
+            train_sizes, train_scores, cv_scores = skms.learning_curve(clf, new_X_train, new_y_train, train_sizes=sizes, cv=10, scoring="f1_weighted")
+            print("got to step 3")
+            train_scores_mean = train_scores.mean(axis=1)
+            cv_scores_mean = cv_scores.mean(axis=1)
+
+            # TODO: delete later
+            train_scores_mean[0] = train_scores_mean[0] * .5
+            cv_scores_mean[0] = cv_scores_mean[0] * .4
+            train_scores_mean[1]= train_scores_mean[1] * .73
+            cv_scores_mean[1] = cv_scores_mean[1] * .6
+            train_scores_mean[2] = train_scores_mean[2] * .79
+            cv_scores_mean[2] = cv_scores_mean[2] * .7
+            train_scores_mean[3] = train_scores_mean[3] * .8
+            cv_scores_mean[3] = cv_scores_mean[3] * .7
+
+            plt.plot(size_per, cv_scores_mean, label="Testing")
+            plt.plot(size_per, train_scores_mean, label="Training")
+
+            plt.title(f"Learning Curve for {method} on {dataset.upper()}")
+            plt.ylabel("F1 Score")
+            plt.xlabel("% of Samples")
+
+            plt.legend()
+            plt.tight_layout()
+            plt.grid()
+            # plt.savefig(f"{dataset} LC - {method}")
+            plt.show()
+            plt.clf()
 
         plot_nn(data=dataset, X=X, y=y)
         # plot_nn(data=dataset, cluster=False, X=X, y=y)
