@@ -1,5 +1,5 @@
 from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, learning_curve, GridSearchCV
 from sklearn.metrics import f1_score
 from sklearn.neural_network import MLPClassifier
 import matplotlib.pyplot as plt
@@ -42,7 +42,7 @@ def transform_data(df, method):
 
 
 def process_data(method):
-    df = pd.read_csv("titanic.csv")
+    df = pd.read_csv("datasets/titanic.csv")
 
     # drop unnecessary stuff
     df = df.drop(["PassengerId", "Name", "Ticket", "Cabin"], axis=1)
@@ -62,10 +62,46 @@ def process_data(method):
     return X_train, X_test, y_train, y_test
 
 
-def main():
-    # X_train, X_test, y_train, y_test = process_data("regular")
-    # X_train, X_test, y_train, y_test = process_data("kmeans")
-    X_train, X_test, y_train, y_test = process_data("expectation")
+def plot_learning_curve(method):
+    x_train, x_test, y_train, y_test = process_data(method)
+
+    sizes = np.linspace(len(x_train) / 10, len(x_train), 10, dtype=int)
+    sizes = sizes[0:-1]
+    # print(sizes)
+    size_per = [x / sizes[-1] for x in sizes]
+
+    gd = MLPClassifier(max_iter=500)
+    alpha = np.logspace(-1, 2, 5)
+    learning_rate = np.logspace(-5, 0, 6)
+    hidden_layer = [[i] for i in range(3, 5, 1)]
+
+    params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+    gd = GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
+    gd.fit(np.asarray(x_train), np.asarray(y_train))
+    clf = gd.best_estimator_
+
+    train_sizes, train_scores, cv_scores = learning_curve(clf, x_train,
+                                                          y_train, train_sizes=sizes, cv=10,
+                                                          scoring="f1_weighted")
+
+    train_scores_mean = train_scores.mean(axis=1)
+    cv_scores_mean = cv_scores.mean(axis=1)
+    plt.plot(size_per, train_scores_mean, 'o-', color='r', label='Training Score')
+    plt.plot(size_per, cv_scores_mean, 'o-', color='b', label='Cross-Validation Score')
+    plt.ylabel('Model F1 Score')
+    plt.xlabel('Sample Size (%)')
+
+    plt.title(f"Titanic {method} NN Learning Curve")
+    plt.legend()
+    plt.tight_layout()
+    plt.grid()
+    # plt.savefig(f"{self.data} LC - {method}")
+    plt.show()
+    plt.clf()
+
+
+def plot_other_graphs(method):
+    X_train, X_test, y_train, y_test = process_data(method)
 
     test_f1 = []
     times = []
@@ -124,6 +160,17 @@ def main():
     plt.ylabel("Loss")
     plt.show()
     plt.clf()
+
+
+def main():
+    plot_learning_curve("regular")
+    plot_learning_curve("kmeans")
+    plot_learning_curve("expectation")
+
+    plot_other_graphs("regular")
+    plot_other_graphs("kmeans")
+    plot_other_graphs("expectation")
+
 
 if __name__ == "__main__":
     main()

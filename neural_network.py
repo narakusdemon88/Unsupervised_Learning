@@ -8,7 +8,6 @@ Notes:
         Sample code was referenced here
 """
 import pandas as pd
-import sklearn.metrics
 from sklearn.model_selection import train_test_split
 import sklearn.cluster as skc
 import sklearn.preprocessing as skp
@@ -31,8 +30,13 @@ def process_data(dataset):
     if dataset == "titanic":
         pred_col = "Survived"
 
-    else:  # dataset is red wine quality
+    elif dataset == "winequality-red":
         pred_col = "quality"
+
+    else:
+        df["Class"] = df["Class"].replace(["SEKER", "BARBUNYA", "BOMBAY", "CALI", "HOROZ", "SIRA", "DERMASON"],
+                                          [0, 1, 2, 3, 4, 5, 6])
+        pred_col = "Class"
 
     X = df.drop([pred_col, "PassengerId", "Name", "Ticket", "Cabin"], axis=1)
     X = X.fillna(0)
@@ -88,152 +92,84 @@ def choose_method(method, X, y):
 
     foo = df.values
     scaler = skp.MinMaxScaler()
-    X_scaled = scaler.fit_transform(foo)
-    X_scaled = pd.DataFrame(X_scaled)
+    x_scaled = scaler.fit_transform(foo)
+    x_scaled = pd.DataFrame(x_scaled)
 
-    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, shuffle=True, random_state=909)
-    # y_train = np.asarray(one_hot.fit_transform(y_train.values.reshape(-1, 1)).todense())
-    # y_test = np.asarray(one_hot.transform(y_test.values.reshape(-1, 1)).todense())
-    return X_train, X_test, y_train, y_test
+    x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, test_size=.2, shuffle=True, random_state=909)
+    one_hot = skp.OneHotEncoder()
+    y_train = np.asarray(one_hot.fit_transform(y_train.values.reshape(-1, 1)).todense())
+    y_test = np.asarray(one_hot.transform(y_test.values.reshape(-1, 1)).todense())
+    return x_train, x_test, y_train, y_test
 
 
-def plot_nn(data, X, y, cluster=False):
+def plot_nn(data, X, y):
 
     iterations = [i for i in range(10, 101, 10)]
 
-    if cluster:
-        reg_train, reg_test, reg_loss, reg_time = nn("Standard", X=X, y=y)
-        k_train, k_test, k_loss, k_time = nn('k-Means', X=X, y=y)
-        em_train, em_test, em_loss, em_time = nn('Expectation Maximization', X=X, y=y)
+    print("standard")
+    reg_train, reg_test, reg_loss, reg_time = nn("Standard", X=X, y=y)
+    print("principal")
+    PCA_train, PCA_test, PCA_loss, PCA_time = nn('Principal CA', X=X, y=y)
+    print("independent")
+    ICA_train, ICA_test, ICA_loss, ICA_time = nn('Independent CA', X=X, y=y)
+    print("random")
+    RCA_train, RCA_test, RCA_loss, RCA_time = nn('Random CA', X=X, y=y)
+    print("forest")
+    rand_train, rand_test, rand_loss, rand_time = nn('Random Forest', X=X, y=y)
 
-        plt.plot(iterations, reg_test, label='Standard')
-        plt.plot(iterations, k_test, label='k-Means',)
-        plt.plot(iterations, em_test, label='Expectation Max')
-        plt.ylabel('F1 Score')
-        plt.xlabel(f'Number of Max Iterations')
-        plt.title("Testing F1 score by Iterations")
-        plt.legend(loc='best')
-        plt.tight_layout()
-        plt.grid()
-        plt.savefig(f"{data} - F1 cluster test")
-        plt.clf()
+    plt.plot(iterations, reg_test, label='Regular')
+    plt.plot(iterations, PCA_test, label='PCA')
+    plt.plot(iterations, ICA_test, label='ICA')
+    plt.plot(iterations, RCA_test, label='RCA')
+    plt.plot(iterations, rand_test, label='RandomForest')
+    plt.ylabel('Loss')
+    plt.xlabel('Iterations')
+    plt.title("Dimensionality Reduction F1 Scores")
+    plt.legend(loc='best')
+    plt.tight_layout()
+    plt.grid(b=True)
+    # plt.savefig(f"Titanic - F1 DR test")
+    plt.show()
+    plt.clf()
 
-        plt.plot(reg_loss, label='Standard')
-        plt.plot(k_loss, label='k-Means')
-        plt.plot(em_loss, label='Expectation Max')
-        plt.ylabel('Loss')
-        plt.xlabel(f'Number of Iterations')
-        plt.title("Cluster Loss Score by Iterations")
-        plt.legend(loc='best')
-        plt.tight_layout()
-        plt.grid(b=True)
-        plt.savefig(f"{data} - Loss cluster")
-        plt.clf()
+    plt.plot(iterations, reg_loss, label='Standard')
+    plt.plot(iterations, PCA_loss, label='Principal CA')
+    plt.plot(iterations, ICA_loss, label='Independent CA')
+    plt.plot(iterations, RCA_loss, label='Random CA')
+    plt.plot(iterations, rand_loss, label='Random Forest')
+    plt.ylabel('Loss')
+    plt.xlabel('Iterations')
+    plt.title("Dimensionality Reduction Loss Score")
+    plt.legend()
+    plt.tight_layout()
+    plt.grid()
+    plt.show()
+    # plt.savefig(f"{data} - Loss DR")
+    plt.clf()
 
-        plt.plot(iterations, reg_time, label='Standard')
-        plt.plot(iterations, k_time, label='k-Means')
-        plt.plot(iterations, em_time, label='Expectation Max')
-        plt.ylabel('Runtime')
-        plt.xlabel(f'Number of Max Iterations')
-        plt.title("Runtime comparing regular and clustering by Iterations")
-        plt.legend(loc='best')
-        plt.tight_layout()
-        plt.grid(b=True)
-        plt.savefig(f"{data} - runtime cluster")
-        plt.clf()
-
-    else:
-        print("standard")
-        reg_train, reg_test, reg_loss, reg_time = nn("Standard", X=X, y=y)
-        print("principal")
-        PCA_train, PCA_test, PCA_loss, PCA_time = nn('Principal CA', X=X, y=y)
-        print("independent")
-        ICA_train, ICA_test, ICA_loss, ICA_time = nn('Independent CA', X=X, y=y)
-        print("random")
-        RCA_train, RCA_test, RCA_loss, RCA_time = nn('Random CA', X=X, y=y)
-        print("forest")
-        rand_train, rand_test, rand_loss, rand_time = nn('Random Forest', X=X, y=y)
-
-        plt.plot(iterations, reg_test, label='Regular')
-        plt.plot(iterations, PCA_test, label='PCA')
-        plt.plot(iterations, ICA_test, label='ICA')
-        plt.plot(iterations, RCA_test, label='RCA')
-        plt.plot(iterations, rand_test, label='RandomForest')
-        plt.ylabel('Loss')
-        plt.xlabel('Iterations')
-        plt.title("Dimensionality Reduction F1 Scores")
-        plt.legend(loc='best')
-        plt.tight_layout()
-        plt.grid(b=True)
-        # plt.savefig(f"Titanic - F1 DR test")
-        plt.show()
-        plt.clf()
-
-        plt.plot(iterations, reg_loss, label='Standard')
-        plt.plot(iterations, PCA_loss, label='Principal CA')
-        plt.plot(iterations, ICA_losslabel='Independent CA')
-        plt.plot(iterations, RCA_losslabel='Random CA')
-        plt.plot(iterations, rand_losslabel='Random Forest')
-        plt.ylabel('Loss')
-        plt.xlabel('Iterations')
-        plt.title("Dimensionality Reduction Loss Score")
-        plt.legend()
-        plt.tight_layout()
-        plt.grid()
-        plt.show()
-        # plt.savefig(f"{data} - Loss DR")
-        plt.clf()
-
-        plt.plot(iterations, reg_time, label='Standard')
-        plt.plot(iterations, PCA_time, label='Principal CA')
-        plt.plot(iterations, ICA_time, label='Independent CA')
-        plt.plot(iterations, RCA_time, label='Random CA')
-        plt.plot(iterations, rand_time, label='Random Forest')
-        plt.ylabel('Runtime')
-        plt.xlabel(f'Number of Max Iterations')
-        plt.title("Dimensionality Reduction Runtimes")
-        plt.legend(loc='best')
-        plt.tight_layout()
-        plt.grid(b=True)
-        plt.show()
-        # plt.savefig(f"{data} - runtime DR")
-        plt.clf()
+    plt.plot(iterations, reg_time, label='Standard')
+    plt.plot(iterations, PCA_time, label='Principal CA')
+    plt.plot(iterations, ICA_time, label='Independent CA')
+    plt.plot(iterations, RCA_time, label='Random CA')
+    plt.plot(iterations, rand_time, label='Random Forest')
+    plt.ylabel('Runtime')
+    plt.xlabel(f'Number of Max Iterations')
+    plt.title("Dimensionality Reduction Runtimes")
+    plt.legend(loc='best')
+    plt.tight_layout()
+    plt.grid(b=True)
+    plt.show()
+    # plt.savefig(f"{data} - runtime DR")
+    plt.clf()
 
 
 def nn(method, X, y):
     iterations = [i for i in range(10, 101, 10)]
 
-    X_train, X_test, y_train, y_test = choose_method(method, X, y)
+    x_train, x_test, y_train, y_test = choose_method(method, X, y)
     gd_train_f1 = []
     gd_test_f1 = []
     runtime_list = []
-
-    param_grid = {'hidden_layer_sizes': [(100,), (50, 50), (25, 50, 25)],
-                  'activation': ['relu', 'logistic', 'tanh'],
-                  'alpha': [0.0001, 0.001, 0.01],
-                  'max_iter': [1000]}
-
-    clf = sknn.MLPClassifier(random_state=909)
-
-    scorer = skme.make_scorer(skme.f1_score, average="weighted")
-
-    f1_scores = []
-
-    for iteration in iterations:
-        print(iteration)
-        clf.max_iter = iteration
-        grid_search = skms.GridSearchCV(clf, param_grid=param_grid, scoring=scorer, cv=10, n_jobs=-1)
-
-        t1 = time.perf_counter()
-        grid_search.fit(X_train, y_train)
-        t2 = time.perf_counter()
-
-        f1_scores.append(grid_search.best_score_)
-        runtime_list.append(t2-t1)
-
-        print(grid_search.best_score_)
-
-
 
     gd = sknn.MLPClassifier(random_state=909, max_iter=500)
     alpha = np.logspace(-1, 2, 5)
@@ -242,39 +178,28 @@ def nn(method, X, y):
 
     params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
     gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
-    gd.fit(X_train, y_train)
+    gd.fit(x_train, y_train)
     gd = gd.best_estimator_
-    scorer_keeper = skme.make_scorer(skme.f1_score, average="weighted")
     """
     activation = relu
     alpha = 0.1
     hidden layers = 3
     learning rate = constant/ 0.1
-    loss
+    loss 
     """
-    # gd_loss = gd.loss_curve_
-    gd_loss = []
+    gd_loss = gd.loss_curve_
 
     for iteration in iterations:
         start_time = time.perf_counter()
 
-        gd.set_params(max_iter=iteration)  # clf.max_iter
-        gd.fit(X_train, y_train)
+        gd.set_params(max_iter=iteration)
+        gd.fit(x_train, y_train)
         train_time = time.perf_counter()-start_time
-        gd_loss.append(gd.loss_)
-        y_pred = nn.predict(X_test)
-
-        grid_search = skms.GridSearchCV(gd, param_grid=params, scoring=scorer_keeper, cv=10, n_jobs=-1)
-        grid_search.fit(X_train, y_train)
-
-
-        y_pred_train = gd.predict(X_train)
-
-        fold_f1_score_test = skme.f1_score(y_test, y_pred, average="weighted")
-        fold_f1_score_train = skme.f1_score(y_train, y_pred_train, average="weighted")
-
-        gd_train_f1.append(fold_f1_score_train)
-        gd_test_f1.append(fold_f1_score_test)
+        gd_loss.append(gd.loss)
+        train_pred = gd.predict(x_train)
+        test_pred = gd.predict(x_test)
+        gd_train_f1.append(skme.f1_score(y_train, train_pred, average='weighted'))
+        gd_test_f1.append(skme.f1_score(y_test, test_pred, average='weighted'))
         runtime_list.append(train_time)
 
     return gd_train_f1, gd_test_f1, gd.loss_curve_[::len(gd.loss_curve_) // 10  ][:10], runtime_list
@@ -290,13 +215,13 @@ def main():
 
 
         methods = [
-            "k-Means",
-            "Expectation Maximization",
-            "Principal CA",
-            "Independent CA",
-            "Random CA",
+            # "k-Means",
+            # "Expectation Maximization",
+            # "Principal CA",
+            # "Independent CA",
+            # "Random CA",
             "Random Forest",
-            "Standard"
+            # "Standard"
         ]
         # for method in methods:
         #     print(method)
@@ -348,8 +273,8 @@ def main():
         #     plt.show()
         #     plt.clf()
 
-        # plot_nn(data=dataset, X=X, y=y, cluster=False)
-        plot_nn(data=dataset, X=X, y=y, cluster=True)
+        plot_nn(data=dataset, X=X, y=y)
+        # plot_nn(data=dataset, cluster=False, X=X, y=y)
 
 
 if __name__ == "__main__":
