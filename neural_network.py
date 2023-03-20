@@ -212,6 +212,7 @@ def nn(method, X, y):
                   'activation': ['relu', 'logistic', 'tanh'],
                   'alpha': [0.0001, 0.001, 0.01],
                   'max_iter': [1000]}
+
     clf = sknn.MLPClassifier(random_state=909)
 
     scorer = skme.make_scorer(skme.f1_score, average="weighted")
@@ -219,6 +220,7 @@ def nn(method, X, y):
     f1_scores = []
 
     for iteration in iterations:
+        print(iteration)
         clf.max_iter = iteration
         grid_search = skms.GridSearchCV(clf, param_grid=param_grid, scoring=scorer, cv=10, n_jobs=-1)
 
@@ -229,53 +231,53 @@ def nn(method, X, y):
         f1_scores.append(grid_search.best_score_)
         runtime_list.append(t2-t1)
 
-        print("HI")
+        print(grid_search.best_score_)
 
 
 
-    # gd = sknn.MLPClassifier(random_state=909, max_iter=500)
-    # alpha = np.logspace(-1, 2, 5)
-    # learning_rate = np.logspace(-5, 0, 6)
-    # hidden_layer = [[i] for i in range(2, 5, 1)]
-    #
-    # params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
-    # gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
-    # gd.fit(X_train, y_train)
-    # gd = gd.best_estimator_
-    # scorer_keeper = skme.make_scorer(skme.f1_score, average="weighted")
-    # """
-    # activation = relu
-    # alpha = 0.1
-    # hidden layers = 3
-    # learning rate = constant/ 0.1
-    # loss
-    # """
-    # # gd_loss = gd.loss_curve_
-    # gd_loss = []
-    #
-    # for iteration in iterations:
-    #     start_time = time.perf_counter()
-    #
-    #     gd.set_params(max_iter=iteration)  # clf.max_iter
-    #     gd.fit(X_train, y_train)
-    #     train_time = time.perf_counter()-start_time
-    #     gd_loss.append(gd.loss_)
-    #     y_pred = nn.predict(X_test)
-    #
-    #     grid_search = skms.GridSearchCV(gd, param_grid=params, scoring=scorer_keeper, cv=10, n_jobs=-1)
-    #     grid_search.fit(X_train, y_train)
-    #
-    #
-    #     y_pred_train = gd.predict(X_train)
-    #
-    #     fold_f1_score_test = skme.f1_score(y_test, y_pred, average="weighted")
-    #     fold_f1_score_train = skme.f1_score(y_train, y_pred_train, average="weighted")
-    #
-    #     gd_train_f1.append(fold_f1_score_train)
-    #     gd_test_f1.append(fold_f1_score_test)
-    #     runtime_list.append(train_time)
+    gd = sknn.MLPClassifier(random_state=909, max_iter=500)
+    alpha = np.logspace(-1, 2, 5)
+    learning_rate = np.logspace(-5, 0, 6)
+    hidden_layer = [[i] for i in range(2, 5, 1)]
 
-    # return gd_train_f1, gd_test_f1, gd.loss_curve_[::len(gd.loss_curve_) // 10  ][:10], runtime_list
+    params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+    gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
+    gd.fit(X_train, y_train)
+    gd = gd.best_estimator_
+    scorer_keeper = skme.make_scorer(skme.f1_score, average="weighted")
+    """
+    activation = relu
+    alpha = 0.1
+    hidden layers = 3
+    learning rate = constant/ 0.1
+    loss
+    """
+    # gd_loss = gd.loss_curve_
+    gd_loss = []
+
+    for iteration in iterations:
+        start_time = time.perf_counter()
+
+        gd.set_params(max_iter=iteration)  # clf.max_iter
+        gd.fit(X_train, y_train)
+        train_time = time.perf_counter()-start_time
+        gd_loss.append(gd.loss_)
+        y_pred = nn.predict(X_test)
+
+        grid_search = skms.GridSearchCV(gd, param_grid=params, scoring=scorer_keeper, cv=10, n_jobs=-1)
+        grid_search.fit(X_train, y_train)
+
+
+        y_pred_train = gd.predict(X_train)
+
+        fold_f1_score_test = skme.f1_score(y_test, y_pred, average="weighted")
+        fold_f1_score_train = skme.f1_score(y_train, y_pred_train, average="weighted")
+
+        gd_train_f1.append(fold_f1_score_train)
+        gd_test_f1.append(fold_f1_score_test)
+        runtime_list.append(train_time)
+
+    return gd_train_f1, gd_test_f1, gd.loss_curve_[::len(gd.loss_curve_) // 10  ][:10], runtime_list
 
 
 def main():
