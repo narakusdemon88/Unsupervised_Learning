@@ -31,13 +31,8 @@ def process_data(dataset):
     if dataset == "titanic":
         pred_col = "Survived"
 
-    elif dataset == "winequality-red":
+    else:  # dataset is red wine quality
         pred_col = "quality"
-
-    else:
-        df["Class"] = df["Class"].replace(["SEKER", "BARBUNYA", "BOMBAY", "CALI", "HOROZ", "SIRA", "DERMASON"],
-                                          [0, 1, 2, 3, 4, 5, 6])
-        pred_col = "Class"
 
     X = df.drop([pred_col, "PassengerId", "Name", "Ticket", "Cabin"], axis=1)
     X = X.fillna(0)
@@ -93,14 +88,13 @@ def choose_method(method, X, y):
 
     foo = df.values
     scaler = skp.MinMaxScaler()
-    x_scaled = scaler.fit_transform(foo)
-    x_scaled = pd.DataFrame(x_scaled)
+    X_scaled = scaler.fit_transform(foo)
+    X_scaled = pd.DataFrame(X_scaled)
 
-    x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, test_size=.2, shuffle=True, random_state=909)
-    one_hot = skp.OneHotEncoder()
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, shuffle=True, random_state=909)
     # y_train = np.asarray(one_hot.fit_transform(y_train.values.reshape(-1, 1)).todense())
     # y_test = np.asarray(one_hot.transform(y_test.values.reshape(-1, 1)).todense())
-    return x_train, x_test, y_train, y_test
+    return X_train, X_test, y_train, y_test
 
 
 def plot_nn(data, X, y, cluster=False):
@@ -209,13 +203,13 @@ def plot_nn(data, X, y, cluster=False):
 def nn(method, X, y):
     iterations = [i for i in range(10, 101, 10)]
 
-    x_train, x_test, y_train, y_test = choose_method(method, X, y)
+    X_train, X_test, y_train, y_test = choose_method(method, X, y)
     gd_train_f1 = []
     gd_test_f1 = []
     runtime_list = []
 
     param_grid = {
-        "hidden_layer_size": [[i] for i in range(2, 5, 1)],
+        "hidden_layer_sizes": [[i] for i in range(2, 5, 1)],
         "alpha": [0.0001, 0.001, 0.01],
         "learning_rate": np.logspace(-5, 0, 6)
     }
@@ -227,6 +221,16 @@ def nn(method, X, y):
 
     for iteration in iterations:
         clf.max_iter = iteration
+        grid_search = skms.GridSearchCV(clf, param_grid=param_grid, scoring=scorer, cv=10, n_jobs=-1)
+
+        t1 = time.perf_counter()
+        grid_search.fit(X_train, y_train)
+        t2 = time.perf_counter()
+
+        f1_scores.append(grid_search.best_score_)
+        runtime_list.append(t2-t1)
+
+        print("HI")
 
 
 
@@ -237,7 +241,7 @@ def nn(method, X, y):
     #
     # params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
     # gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
-    # gd.fit(x_train, y_train)
+    # gd.fit(X_train, y_train)
     # gd = gd.best_estimator_
     # scorer_keeper = skme.make_scorer(skme.f1_score, average="weighted")
     # """
@@ -254,16 +258,16 @@ def nn(method, X, y):
     #     start_time = time.perf_counter()
     #
     #     gd.set_params(max_iter=iteration)  # clf.max_iter
-    #     gd.fit(x_train, y_train)
+    #     gd.fit(X_train, y_train)
     #     train_time = time.perf_counter()-start_time
     #     gd_loss.append(gd.loss_)
-    #     y_pred = nn.predict(x_test)
+    #     y_pred = nn.predict(X_test)
     #
     #     grid_search = skms.GridSearchCV(gd, param_grid=params, scoring=scorer_keeper, cv=10, n_jobs=-1)
-    #     grid_search.fit(x_train, y_train)
+    #     grid_search.fit(X_train, y_train)
     #
     #
-    #     y_pred_train = gd.predict(x_train)
+    #     y_pred_train = gd.predict(X_train)
     #
     #     fold_f1_score_test = skme.f1_score(y_test, y_pred, average="weighted")
     #     fold_f1_score_train = skme.f1_score(y_train, y_pred_train, average="weighted")
@@ -272,7 +276,7 @@ def nn(method, X, y):
     #     gd_test_f1.append(fold_f1_score_test)
     #     runtime_list.append(train_time)
 
-    return gd_train_f1, gd_test_f1, gd.loss_curve_[::len(gd.loss_curve_) // 10  ][:10], runtime_list
+    # return gd_train_f1, gd_test_f1, gd.loss_curve_[::len(gd.loss_curve_) // 10  ][:10], runtime_list
 
 
 def main():
