@@ -67,18 +67,19 @@ def RandomForest(X, y):
 
 
 def choose_method(method, X, y):
-    if method == "k-Means":
-        kmeans = skc.KMeans(n_clusters=5, random_state=909).fit(X)
-        kmeans = kmeans.predict(X)
-        kmeans = pd.DataFrame(kmeans, columns=["Clusters"])
-        df = X.join(kmeans)
-    elif method == "Expectation Maximization":
-        EM = skmix.GaussianMixture(n_components=2, random_state=909).fit(X)
-        EM = EM.predict(X)
-        EM = pd.DataFrame(EM, columns=["Clusters"])
-        df = X.join(EM)
+    # if method == "k-Means":
+    #     kmeans = skc.KMeans(n_clusters=5, random_state=909).fit(X)
+    #     kmeans = kmeans.predict(X)
+    #     kmeans = pd.DataFrame(kmeans, columns=["Clusters"])
+    #     df = X.join(kmeans)
+    # elif method == "Expectation Maximization":
+    #     EM = skmix.GaussianMixture(n_components=2, random_state=909).fit(X)
+    #     EM = EM.predict(X)
+    #     EM = pd.DataFrame(EM, columns=["Clusters"])
+    #     df = X.join(EM)
 
-    elif method == "Principal CA":
+    # TODO: SEE IF THESE ARE WORKING CORRECTLY
+    if method == "Principal CA":
         df = skd.PCA(n_components=2).fit_transform(X)
         df = pd.DataFrame(df)
     elif method == "Independent CA":
@@ -106,23 +107,27 @@ def plot_nn(data, X, y):
 
     iterations = [i for i in range(10, 101, 10)]
 
-    print("standard")
-    reg_train, reg_test, reg_loss, reg_time = nn("Standard", X=X, y=y)
-    print("principal")
-    PCA_train, PCA_test, PCA_loss, PCA_time = nn('Principal CA', X=X, y=y)
-    print("independent")
-    ICA_train, ICA_test, ICA_loss, ICA_time = nn('Independent CA', X=X, y=y)
-    print("random")
-    RCA_train, RCA_test, RCA_loss, RCA_time = nn('Random CA', X=X, y=y)
-    print("forest")
-    rand_train, rand_test, rand_loss, rand_time = nn('Random Forest', X=X, y=y)
+    # test_f1, gd.loss_curve_[::len(gd.loss_curve_) // 10  ][:10], times
 
+    print("standard")
+    reg_test, reg_loss, reg_time = nn("Standard", X=X, y=y)
+    print("principal")
+    PCA_test, PCA_loss, PCA_time = nn('Principal CA', X=X, y=y)
+    print("independent")
+    ICA_test, ICA_loss, ICA_time = nn('Independent CA', X=X, y=y)
+    print("random")
+    RCA_test, RCA_loss, RCA_time = nn('Random CA', X=X, y=y)
+    print("forest")
+    rand_test, rand_loss, rand_time = nn('Random Forest', X=X, y=y)
+
+    # TODO: these numbers don't look great especially reg, pca, ica, and forest
+    # F1 SCORES (TEST DATA)
     plt.plot(iterations, reg_test, label='Regular')
     plt.plot(iterations, PCA_test, label='PCA')
     plt.plot(iterations, ICA_test, label='ICA')
     plt.plot(iterations, RCA_test, label='RCA')
     plt.plot(iterations, rand_test, label='RandomForest')
-    plt.ylabel('Loss')
+    plt.ylabel('F1 Scores')
     plt.xlabel('Iterations')
     plt.title("Dimensionality Reduction F1 Scores")
     plt.legend(loc='best')
@@ -132,6 +137,8 @@ def plot_nn(data, X, y):
     plt.show()
     plt.clf()
 
+
+    # LOSS SCORES (LOSS DATA)
     plt.plot(iterations, reg_loss, label='Standard')
     plt.plot(iterations, PCA_loss, label='Principal CA')
     plt.plot(iterations, ICA_loss, label='Independent CA')
@@ -147,13 +154,15 @@ def plot_nn(data, X, y):
     # plt.savefig(f"{data} - Loss DR")
     plt.clf()
 
+
+    # RUN TIMES (RUN TIME)
     plt.plot(iterations, reg_time, label='Standard')
     plt.plot(iterations, PCA_time, label='Principal CA')
     plt.plot(iterations, ICA_time, label='Independent CA')
     plt.plot(iterations, RCA_time, label='Random CA')
     plt.plot(iterations, rand_time, label='Random Forest')
     plt.ylabel('Runtime')
-    plt.xlabel(f'Number of Max Iterations')
+    plt.xlabel(f'Max Iterations #')
     plt.title("Dimensionality Reduction Runtimes")
     plt.legend(loc='best')
     plt.tight_layout()
@@ -166,43 +175,76 @@ def plot_nn(data, X, y):
 def nn(method, X, y):
     iterations = [i for i in range(10, 101, 10)]
 
-    x_train, x_test, y_train, y_test = choose_method(method, X, y)
-    gd_train_f1 = []
-    gd_test_f1 = []
-    runtime_list = []
+    # x_train, x_test, y_train, y_test = choose_method(method, X, y)
 
-    gd = sknn.MLPClassifier(random_state=909, max_iter=500)
-    alpha = np.logspace(-1, 2, 5)
-    learning_rate = np.logspace(-5, 0, 6)
-    hidden_layer = [[i] for i in range(2, 5, 1)]
+    X_train, X_test, y_train, y_test = choose_method(method, X, y)
 
-    params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+    test_f1 = []
+    times = []
+
+    gd = sknn.MLPClassifier(max_iter=1000, random_state=909)
+
+    params = {"alpha": np.logspace(-1, 2, 5),
+              "learning_rate_init": np.logspace(-5, 0, 6),
+              "hidden_layer_sizes": [[i] for i in range(1, 5)]}
+
     gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
-    gd.fit(x_train, y_train)
+
+    gd.fit(X_train, y_train)
     gd = gd.best_estimator_
-    """
-    activation = relu
-    alpha = 0.1
-    hidden layers = 3
-    learning rate = constant/ 0.1
-    loss 
-    """
-    gd_loss = gd.loss_curve_
+    # gd_loss = gd.loss_curve_
 
-    for iteration in iterations:
-        start_time = time.perf_counter()
+    for iteration in range(10, 101, 10):
+        print(iteration)
 
+        t1 = time.perf_counter()
         gd.set_params(max_iter=iteration)
-        gd.fit(x_train, y_train)
-        train_time = time.perf_counter()-start_time
-        gd_loss.append(gd.loss)
-        train_pred = gd.predict(x_train)
-        test_pred = gd.predict(x_test)
-        gd_train_f1.append(skme.f1_score(y_train, train_pred, average='weighted'))
-        gd_test_f1.append(skme.f1_score(y_test, test_pred, average='weighted'))
-        runtime_list.append(train_time)
+        gd.fit(X_train, y_train)
+        t2 = time.perf_counter()
 
-    return gd_train_f1, gd_test_f1, gd.loss_curve_[::len(gd.loss_curve_) // 10  ][:10], runtime_list
+        test_f1.append(skme.f1_score(y_test, gd.predict(X_test), average="weighted"))
+        times.append(t2 - t1)
+        # gd_loss.append(gd.loss)
+
+    print(f"F1 Scores:\n{test_f1}")
+    print(f"Times:\n{times}")
+    print(f"Loss:\n{gd.loss_curve_[::len(gd.loss_curve_) // 10][:10]}")
+
+    # gd_train_f1 = []
+    # gd_test_f1 = []
+    # runtime_list = []
+    #
+    # gd = sknn.MLPClassifier(random_state=909, max_iter=500)
+    #
+    # params = {'alpha': np.logspace(-1, 2, 5),
+    #           'learning_rate_init': np.logspace(-5, 0, 6),
+    #           'hidden_layer_sizes': [[i] for i in range(2, 5, 1)]}
+    # gd = skms.GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
+    # gd.fit(x_train, y_train)
+    # gd = gd.best_estimator_
+    # """
+    # activation = relu
+    # alpha = 0.1
+    # hidden layers = 3
+    # learning rate = constant/ 0.1
+    # loss
+    # """
+    # gd_loss = gd.loss_curve_
+    #
+    # for iteration in iterations:
+    #     start_time = time.perf_counter()
+    #
+    #     gd.set_params(max_iter=iteration)
+    #     gd.fit(x_train, y_train)
+    #     train_time = time.perf_counter()-start_time
+    #     gd_loss.append(gd.loss)
+    #     train_pred = gd.predict(x_train)
+    #     test_pred = gd.predict(x_test)
+    #     gd_train_f1.append(skme.f1_score(y_train, train_pred, average='weighted'))
+    #     gd_test_f1.append(skme.f1_score(y_test, test_pred, average='weighted'))
+    #     runtime_list.append(train_time)
+
+    return test_f1, gd.loss_curve_[::len(gd.loss_curve_) // 10  ][:10], times
 
 
 def main():
@@ -216,11 +258,11 @@ def main():
         methods = [
             # "k-Means",
             # "Expectation Maximization",
-            # "Principal CA",
-            # "Independent CA",
-            # "Random CA",
+            "Principal CA",
+            "Independent CA",
+            "Random CA",
             "Random Forest",
-            # "Standard"
+            "Standard"
         ]
         for method in methods:
             print(method)
@@ -228,7 +270,7 @@ def main():
 
             sizes = np.linspace(len(new_X_test) / 10, len(new_X_train), 10, dtype=int)
             sizes = sizes[0:-1]
-            size_per = [x*100 / sizes[-1] for x in sizes]
+            size_per = [x * 100 / sizes[-1] for x in sizes]
 
             gd = sknn.MLPClassifier(random_state=909, max_iter=500)
             alpha = np.logspace(-1, 2, 5)
@@ -261,7 +303,7 @@ def main():
             plt.plot(size_per, cv_scores_mean, label="Testing")
             plt.plot(size_per, train_scores_mean, label="Training")
 
-            plt.title(f"Learning Curve for {method} on {dataset.upper()}")
+            plt.title(f"Titanic {method} Learning Curve")
             plt.ylabel("F1 Score")
             plt.xlabel("% of Samples")
 
@@ -273,7 +315,6 @@ def main():
             plt.clf()
 
         plot_nn(data=dataset, X=X, y=y)
-        # plot_nn(data=dataset, cluster=False, X=X, y=y)
 
 
 if __name__ == "__main__":

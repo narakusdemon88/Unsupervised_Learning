@@ -77,11 +77,10 @@ def plot_learning_curve(method):
     ]
 
     gd = MLPClassifier(max_iter=500)
-    alpha = np.logspace(-1, 2, 5)
-    learning_rate = np.logspace(-5, 0, 6)
-    hidden_layer = [[i] for i in range(3, 5, 1)]
 
-    params = {'alpha': alpha, 'learning_rate_init': learning_rate, 'hidden_layer_sizes': hidden_layer}
+    params = {'alpha': np.logspace(-1, 2, 5),
+              'learning_rate_init': np.logspace(-5, 0, 6),
+              'hidden_layer_sizes': [[i] for i in range(3, 5, 1)]}
     gd = GridSearchCV(gd, param_grid=params, cv=10, n_jobs=-1)
     gd.fit(np.asarray(x_train), np.asarray(y_train))
     clf = gd.best_estimator_
@@ -92,10 +91,10 @@ def plot_learning_curve(method):
 
     train_scores_mean = train_scores.mean(axis=1)
     cv_scores_mean = cv_scores.mean(axis=1)
-    plt.plot(size_per, train_scores_mean, 'o-', color='r', label='Training Score')
-    plt.plot(size_per, cv_scores_mean, 'o-', color='b', label='Cross-Validation Score')
-    plt.ylabel('Model F1 Score')
-    plt.xlabel('Sample Size (%)')
+    plt.plot(size_per, train_scores_mean, label='Training')
+    plt.plot(size_per, cv_scores_mean, label='Testing')
+    plt.ylabel('F1 Score')
+    plt.xlabel('% of Samples')
 
     plt.title(f"Titanic {method} NN Learning Curve")
     plt.legend()
